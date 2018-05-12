@@ -8,6 +8,7 @@ using System.IO;
 using System.Xml;
 using System.Xml.Serialization;
 using System.Xml.XPath;
+using MySql.Data.MySqlClient;
 
 namespace Fil_RougeBDD
 {
@@ -15,7 +16,37 @@ namespace Fil_RougeBDD
     {
         static void Main(string[] args)
         {
+            // Bien verifier , via Workbench par exemple , que ces parametres de connexion sont valides !!!
+            string connectionString = " SERVER = fboisson.ddns.net ; PORT = 3306; DATABASE = TUCO_THIB; UID = S6-TUCO-THIB;PASSWORD = 8441;";
+            MySqlConnection connection = new MySqlConnection(connectionString);
+            connection.Open();
+            MySqlCommand command = connection.CreateCommand();
+            List<Client> listeV = new List<Client>();
+            //command.CommandText = " SELECT distinct v.immat,v.modele, v.marque, v.achatA, v.compteur,p.pseudo from voiture v, proprietaire p where p.codeP=v.codeP";
+            MySqlDataReader reader;
+            reader = command.ExecuteReader();
+
+            while (reader.Read()) // parcours ligne par ligne
+            {
+                //string currentRowAsString = "";
+                for (int i = 0; i < reader.FieldCount; i++) // parcours cellule par cellule
+                {
+                    //string valueAsString = reader.GetValue(i).ToString(); // recuperation de la valeur de chaque cellule sous forme d' une string ( voir cependant les differentes methodes disponibles !!)
+                    //currentRowAsString +=" "+valueAsString;
+                    listeV.Add(
+                        new Client(reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetInt32(3), reader.GetInt32(4), reader.GetString(5))
+                   );
+                }
+                //Console.WriteLine(currentRowAsString); // affichage de la ligne ( sous forme d'une " grosse "string ) sur la sortie standard
+            }
+            connection.Close();
+            Console.ReadKey();
         }
+
+
+
+
+
         public static void Exo6()
         {
             StreamReader reader = new StreamReader("chiens.json");
