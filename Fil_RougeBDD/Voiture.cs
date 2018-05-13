@@ -29,5 +29,9 @@ namespace Fil_RougeBDD
         {
             get { return this.immat; }
         }
+        public bool Disponible
+        {
+            get { return this.disponible; }
+        }
     }
 }
