@@ -26,8 +26,10 @@ namespace Fil_RougeBDD
             List<Ranger> listeR = InstancieListeRangerFromBDD(connectionString);
             Sejour sejour_client=Message1(listeC,listeS,listeT,un_client);
             Ranger voiture_dispo= E3(connectionString,listeR);
-            List<String> Appartement_recueilli = E5();
-            Message2(connectionString, sejour_client, listeT, un_client, voiture_dispo);
+            List<List<string>> Appartements_valides = E5();
+            Message2(connectionString, sejour_client, listeT, un_client, voiture_dispo,Appartements_valides);
+            Message3(sejour_client, Appartements_valides);
+            Message4(sejour_client, un_client, listeT);
             Console.ReadKey();
         }
 
@@ -43,13 +45,9 @@ namespace Fil_RougeBDD
 
             while (reader.Read()) 
             {
-                //for (int i = 0; i < reader.FieldCount; i++) // parcours cellule par cellule
-                //{
                     listeC.Add(
                         new Client(reader.GetString(0),reader.GetString(1),reader.GetString(2))
                    );
-                //}
-                //Console.WriteLine(currentRowAsString); // affichage de la ligne ( sous forme d'une " grosse "string ) sur la sortie standard
             }
             connection.Close();
             return listeC;
@@ -167,7 +165,6 @@ namespace Fil_RougeBDD
         public static Sejour Message1(List<Client> listeC, List<Sejour>listeS, List<Theme> listeT, Client un_client)
         {
             XmlDocument docXml = new XmlDocument();
-            // création de l en tête XML (no <= > pas de DTD associée)
             string num_client=E2(listeC, un_client);
             docXml.CreateXmlDeclaration("1.0", "UTF -8", "no");
             XmlElement racine = docXml.CreateElement("M1");
@@ -245,11 +242,12 @@ namespace Fil_RougeBDD
             connection.Close();
             return voiture_dispo;
         }
-        public static List<String> E5()
+        public static List<List<string>> E5()
         {
             StreamReader reader = new StreamReader("ReponseRBNP.json");
             JsonTextReader jreader = new JsonTextReader(reader);
             List<string> liste=new List<string>();
+            List<List<string>> maliste = new List<List<string>>();
             int compteur = 0;
             while (jreader.Read())
             {
@@ -262,7 +260,7 @@ namespace Fil_RougeBDD
                         if (liste[i] == "overall_satisfaction" && Convert.ToDouble(liste[i + 1]) >= 4.5) compteur++;
                         if (liste[i] == "bedrooms" &&Convert.ToDouble(liste[i + 1]) == 1) compteur++;
                     }
-                    if (compteur == 4) return liste;
+                    if (compteur == 4) maliste.Add(liste);
                     liste = new List<string>();
                     compteur = 0;
                 }
@@ -273,12 +271,12 @@ namespace Fil_RougeBDD
             }
             jreader.Close();
             reader.Close();
-            return null;
+            return maliste;
         }
-        public static void Message2(string connectionString, Sejour sejour_selectionne,List<Theme> listeT, Client adherent, Ranger voiture_selectionne)
+        public static void Message2(string connectionString, Sejour sejour_selectionne, List<Theme> listeT, Client adherent, Ranger voiture_selectionne, List<List<string>> appartements)
         {
             Theme theme_sejour = null;
-            for(int i = 0; i < listeT.Count(); i++)
+            for (int i = 0; i < listeT.Count(); i++)
             {
                 if (sejour_selectionne.Theme_sejour == listeT[i].Id_theme) theme_sejour = listeT[i];
             }
@@ -286,14 +284,14 @@ namespace Fil_RougeBDD
             connection.Open();
             MySqlCommand command = connection.CreateCommand();
             List<Client> listeC = new List<Client>();
-            command.CommandText = "select p.nom, r.num_place from parking p, ranger r where r.id_p=p.id_p and r.immat='"+voiture_selectionne.Immat+"'";
+            command.CommandText = "select p.nom, r.num_place from parking p, ranger r where r.id_p=p.id_p and r.immat='" + voiture_selectionne.Immat + "'";
             MySqlDataReader reader;
             reader = command.ExecuteReader();
-            string nom_parking="";
+            string nom_parking = "";
             string num_place = "";
             while (reader.Read())
             {
-                nom_parking= reader.GetString(0);
+                nom_parking = reader.GetString(0);
                 num_place = reader.GetString(1);
                 break;
             }
@@ -325,7 +323,7 @@ namespace Fil_RougeBDD
             XmlElement parking = docXml.CreateElement("Parking");
             racine.AppendChild(parking);
             XmlElement Nom = docXml.CreateElement("Nom");
-            Nom.InnerText =nom_parking;
+            Nom.InnerText = nom_parking;
             parking.AppendChild(Nom);
             XmlElement numeroPlace = docXml.CreateElement("NumeroPlace");
             numeroPlace.InnerText = num_place;
@@ -333,9 +331,81 @@ namespace Fil_RougeBDD
             XmlElement immat = docXml.CreateElement("ImmatriculationVoiture");
             immat.InnerText = voiture_selectionne.Immat;
             parking.AppendChild(immat);
-            XmlElement PropositionAppartement = docXml.CreateElement("PropositionAppartement");
+            XmlElement PropositionAppartement = docXml.CreateElement("PropositionsAppartements");
             racine.AppendChild(PropositionAppartement);
+
+            XmlElement Proposition1 = docXml.CreateElement("Proposition1");
+            PropositionAppartement.AppendChild(Proposition1);
+            XmlElement Host_id1 = docXml.CreateElement("host_id");
+            Proposition1.AppendChild(Host_id1);
+            Host_id1.InnerText = appartements[0][1];
+            XmlElement Proposition2 = docXml.CreateElement("Proposition2");
+            PropositionAppartement.AppendChild(Proposition2);
+            XmlElement Host_id2 = docXml.CreateElement("host_id");
+            Proposition2.AppendChild(Host_id2);
+            Host_id2.InnerText = appartements[1][1];
+            XmlElement Proposition3 = docXml.CreateElement("Proposition3");
+            PropositionAppartement.AppendChild(Proposition3);
+            XmlElement Host_id3 = docXml.CreateElement("host_id");
+            Proposition3.AppendChild(Host_id3);
+            Host_id3.InnerText = appartements[2][1];
+            XmlElement prix1 = docXml.CreateElement("prix");
+            Proposition1.AppendChild(prix1);
+            prix1.InnerText = appartements[0][19];
+            XmlElement prix2 = docXml.CreateElement("prix");
+            Proposition2.AppendChild(prix2);
+            prix2.InnerText = appartements[1][19];
+            XmlElement prix3 = docXml.CreateElement("prix");
+            Proposition3.AppendChild(prix3);
+            prix3.InnerText = appartements[2][19];
             docXml.Save("M2.xml");
+        }
+        public static void Message3(Sejour sejour_selectionne, List<List<string>> appartements)
+        {
+            XmlDocument docXml = new XmlDocument();
+            docXml.CreateXmlDeclaration("1.0", "UTF -8", "no");
+            XmlElement racine = docXml.CreateElement("M3");
+            docXml.AppendChild(racine);
+            XmlElement autreBalise = docXml.CreateElement("NumeroDeSejour");
+            autreBalise.InnerText = sejour_selectionne.Id_sejour;
+            racine.AppendChild(autreBalise);
+            XmlElement cinquiemeBalise = docXml.CreateElement("InfoValidation");
+            cinquiemeBalise.InnerText = "Sejour validé";
+            racine.AppendChild(cinquiemeBalise);
+            XmlElement reference_appart = docXml.CreateElement("Reference_appartement_choisi");
+            reference_appart.InnerText =appartements[0][1] ;
+            racine.AppendChild(reference_appart);
+            docXml.Save("M3.xml");
+        }
+        public static void Message4(Sejour sejour_selectionne, Client adherent, List<Theme> listeT)
+        {
+            Theme theme_sejour = null;
+            for (int i = 0; i < listeT.Count(); i++)
+            {
+                if (sejour_selectionne.Theme_sejour == listeT[i].Id_theme) theme_sejour = listeT[i];
+            }
+            XmlDocument docXml = new XmlDocument();
+            docXml.CreateXmlDeclaration("1.0", "UTF -8", "no");
+            XmlElement racine = docXml.CreateElement("M4");
+            docXml.AppendChild(racine);
+            XmlElement deuxiemeBalise = docXml.CreateElement("Adherent");
+            racine.AppendChild(deuxiemeBalise);
+            XmlElement baliseAdherentNom = docXml.CreateElement("Nom");
+            baliseAdherentNom.InnerText = adherent.Nom;
+            deuxiemeBalise.AppendChild(baliseAdherentNom);
+            XmlElement baliseAdherentnum = docXml.CreateElement("Numero");
+            baliseAdherentnum.InnerText = adherent.Num_c;
+            deuxiemeBalise.AppendChild(baliseAdherentnum);
+            XmlElement nomTheme = docXml.CreateElement("NomTheme");
+            nomTheme.InnerText = theme_sejour.Nom_theme;
+            racine.AppendChild(nomTheme);
+            XmlElement troisiemeBalise = docXml.CreateElement("Date");
+            troisiemeBalise.InnerText = "14";
+            racine.AppendChild(troisiemeBalise);
+            XmlElement cinquiemeBalise = docXml.CreateElement("InfoValidation");
+            cinquiemeBalise.InnerText = "séjour impossible, veuillez choisir une autre date";
+            racine.AppendChild(cinquiemeBalise);
+            docXml.Save("M4.xml");
         }
 
 
