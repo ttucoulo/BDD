@@ -32,6 +32,12 @@ namespace Fil_RougeBDD
         public bool Disponible
         {
             get { return this.disponible; }
+            set { this.disponible = value; }
+        }
+        public string Motif
+        {
+            get { return this.motif; }
+            set { this.motif = value; }
         }
     }
 }
