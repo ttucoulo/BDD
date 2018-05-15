@@ -17,24 +17,20 @@ namespace Fil_RougeBDD
         static void Main(string[] args)
         {
             string connectionString = " SERVER = fboisson.ddns.net ; PORT = 3306; DATABASE = TUCO_THIB; UID = S6-TUCO-THIB;PASSWORD = 8441;";
-            Client un_client = new Client("20-5", "Tucoulou", "ESILV, La Defense");
-            List<Voiture> listeV= InstancieListeVoitureFromBDD(connectionString);
-            List<Client> listeC=InstancieListeClientFromBDD(connectionString);
-            List<Parking> listeP = InstancieListeParkingFromBDD(connectionString);
-            List<Sejour> listeS = InstancieListeSejourFromBDD(connectionString);
-            List<Theme> listeT = InstancieListeThemeFromBDD(connectionString);
-            List<Ranger> listeR = InstancieListeRangerFromBDD(connectionString);
-            List<Reserver> listeReserver = InstancieListeReserverFromBDD(connectionString);
-            Sejour sejour_client=Message1(listeC,listeS,listeT,un_client);
-            Ranger voiture_dispo= E3(connectionString,listeR);
+            int mon_id_client = E2(connectionString);
+            int id_sejour_choisi=Message1(connectionString);
+            List<string> liste_info_client = returnInfoClient();
+            List<string> liste_info_sejour = returnInfoSejour();
+            string voiture_dispo = E3(connectionString);
+            List<List<string>> appartements_valides = E5();
             if (R1(voiture_dispo))
             {
                 List<List<string>> Appartements_valides = E5();
-                if (J3(Appartements_valides))
+                if (J3(appartements_valides))
                 {
-                    Message2(connectionString, sejour_client, listeReserver, listeT, un_client, voiture_dispo, Appartements_valides);
-                    Message3(sejour_client, un_client, Appartements_valides, listeReserver,listeV,voiture_dispo);
-                    Message4(sejour_client, un_client, listeT);
+                    Message2(connectionString,mon_id_client,liste_info_sejour,liste_info_client,id_sejour_choisi,voiture_dispo,appartements_valides);
+                    //Message3(sejour_client, un_client, Appartements_valides, listeReserver,listeV,voiture_dispo);
+                    //Message4(sejour_client, un_client, listeT);
                 }
                 else Console.WriteLine("Pas d'appartement disponible conforme à votre recherche.");
             }
@@ -42,211 +38,135 @@ namespace Fil_RougeBDD
             Console.ReadKey();
         }
 
-        public static List<Client> InstancieListeClientFromBDD(string connectionString)
+        public static int E2(string connectionString)
         {
-            MySqlConnection connection = new MySqlConnection(connectionString);
-            connection.Open();
-            MySqlCommand command = connection.CreateCommand();
-            List<Client> listeC = new List<Client>();
-            command.CommandText = "select v.num_c, v.nom, v.adresse from client v";
-            MySqlDataReader reader;
-            reader = command.ExecuteReader();
 
-            while (reader.Read()) 
-            {
-                    listeC.Add(
-                        new Client(reader.GetString(0),reader.GetString(1),reader.GetString(2))
-                   );
-            }
-            connection.Close();
-            return listeC;
-        }
-        public static List<Voiture> InstancieListeVoitureFromBDD(string connectionString)
-        {
             MySqlConnection connection = new MySqlConnection(connectionString);
             connection.Open();
             MySqlCommand command = connection.CreateCommand();
-            List<Voiture> listeV = new List<Voiture>();
-            command.CommandText = "select immat, disponible, motif, marque, modele, nbr_places from voiture";
+            command.CommandText = "select num_c from client where nom='Tucoulou' and adresse='ESILV, la défense'";
             MySqlDataReader reader;
             reader = command.ExecuteReader();
-            while (reader.Read())
+            int mon_id = -1;
+            if (reader.Read())
             {
-                    bool dispo = false;
-                    string motif = "";
-                    if (reader.GetString(1).ToLower() == "true") dispo = true;
-                    if (reader.GetValue(2) != null) motif = reader.GetValue(2).ToString();
-                    listeV.Add(
-                        new Voiture(reader.GetString(0), dispo, motif, reader.GetString(3), reader.GetString(4), (int)reader.GetValue(5))
-                   );
+                mon_id = reader.GetInt16(0);
+            }
+            else
+            {
+                connection.Close();
+                connection.Open();
+                command.CommandText = "select max(num_c) from client";
+                reader = command.ExecuteReader();
+                reader.Read();
+                mon_id = reader.GetInt16(0)+1;
+                connection.Close();
+                connection.Open();
+                command.CommandText = "insert into client values ("+mon_id+ ",'Tucoulou','ESILV, la défense')";
+                reader = command.ExecuteReader();
+                reader.Read();
             }
             connection.Close();
-            return listeV;
+            return mon_id;
         }
-        public static List<Parking> InstancieListeParkingFromBDD(string connectionString)
+        public static int Message1(string connectionString)
         {
-            MySqlConnection connection = new MySqlConnection(connectionString);
-            connection.Open();
-            MySqlCommand command = connection.CreateCommand();
-            List<Parking> listeP = new List<Parking>();
-            command.CommandText = "select id_p,nom,adresse,arrond from parking";
-            MySqlDataReader reader;
-            reader = command.ExecuteReader();
-            while (reader.Read())
-            {
-                listeP.Add(
-                    new Parking(reader.GetString(0), reader.GetString(1),reader.GetString(2), (int)reader.GetValue(3))
-                );
-               
-            }
-            connection.Close();
-            return listeP;
-        }
-        public static List<Sejour> InstancieListeSejourFromBDD(string connectionString)
-        {
-            MySqlConnection connection = new MySqlConnection(connectionString);
-            connection.Open();
-            MySqlCommand command = connection.CreateCommand();
-            List<Sejour> listeP = new List<Sejour>();
-            command.CommandText = "select id_s,description,id_t from sejour";
-            MySqlDataReader reader;
-            reader = command.ExecuteReader();
-            while (reader.Read())
-            {
-                listeP.Add(
-                    new Sejour(reader.GetString(0), reader.GetString(1), reader.GetString(2))
-                );
-
-            }
-            connection.Close();
-            return listeP;
-        }
-        public static Sejour returnSejourFromId(List<Sejour> sejour, string id_sejour)
-        {
-            for (int i=0;i< sejour.Count(); i++)
-            {
-                if (sejour[i].Id_sejour == id_sejour) return sejour[i];
-            }
-            return null;
-        }
-        public static Voiture returnVoitureFromRanger(Ranger voiture, List<Voiture> listeV)
-        {
-            for (int i = 0; i < listeV.Count(); i++)
-            {
-                if (listeV[i].Immat == voiture.Immat) return listeV[i];
-            }
-            return null;
-        }
-        public static List<Theme> InstancieListeThemeFromBDD(string connectionString)
-        {
-            MySqlConnection connection = new MySqlConnection(connectionString);
-            connection.Open();
-            MySqlCommand command = connection.CreateCommand();
-            List<Theme> listeT = new List<Theme>();
-            command.CommandText = "select id_t,nom,arrond,description from theme";
-            MySqlDataReader reader;
-            reader = command.ExecuteReader();
-
-            while (reader.Read())
-            {
-                string description = "";
-                if (reader.GetValue(3) != null) description = reader.GetValue(2).ToString();
-                listeT.Add(
-                    new Theme(reader.GetString(0), reader.GetString(1), (int)reader.GetValue(2), description)
-               );
-            }
-            connection.Close();
-            return listeT;
-        }
-        public static List<Ranger> InstancieListeRangerFromBDD(string connectionString)
-        {
-            MySqlConnection connection = new MySqlConnection(connectionString);
-            connection.Open();
-            MySqlCommand command = connection.CreateCommand();
-            List<Ranger> listeR = new List<Ranger>();
-            command.CommandText = "select id_p, immat, date_r,num_place from ranger";
-            MySqlDataReader reader;
-            reader = command.ExecuteReader();
-
-            while (reader.Read())
-            {
-                listeR.Add(
-                    new Ranger(reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetString(3))
-               );
-            }
-            connection.Close();
-            return listeR;
-        }
-        public static List<Reserver> InstancieListeReserverFromBDD(string connectionString)
-        {
-            MySqlConnection connection = new MySqlConnection(connectionString);
-            connection.Open();
-            MySqlCommand command = connection.CreateCommand();
-            List<Reserver> listeReserver = new List<Reserver>();
-            command.CommandText = "select num_c, id_s, date_r,confirme,note from reserver";
-            MySqlDataReader reader;
-            reader = command.ExecuteReader();
-            bool confirme = true;                //Parce que les reservations présentes dans la base de donnée sont considérées déjà reservées et validées.
-            double note = -1;                    //Pas de notes pour les reservations de la base de donnée donc je les mets à -1 pour les differencier des reservations validées.
-            while (reader.Read())
-            {
-                listeReserver.Add(
-                    new Reserver(reader.GetString(0), reader.GetString(1), reader.GetString(2), confirme,note)
-               );
-            }
-            connection.Close();
-            return listeReserver;
-        }
-        public static bool R1(Ranger voiture)
-        {
-            if (voiture != null) return true;
-            else return false;
-        }
-        public static bool J3(List<List<string>> Appartements_valides)
-        {
-            if (Appartements_valides != null) return true;
-            else return false;
-        }
-
-
-        public static Sejour Message1(List<Client> listeC, List<Sejour>listeS, List<Theme> listeT, Client un_client)
-        {
+            int id_sejour = -1;
+            string nom_sejour = "visite de la Defense";
+            int arrondissment = 16;
+            string nom_theme = "les grands immeubles";
+            string id_theme = "vDef";
+            string date = "14";
+            string description_theme = "les avenues ";
             XmlDocument docXml = new XmlDocument();
-            string num_client=E2(listeC, un_client);
+            int num_client = E2(connectionString);
             docXml.CreateXmlDeclaration("1.0", "UTF -8", "no");
             XmlElement racine = docXml.CreateElement("M1");
             docXml.AppendChild(racine);
             XmlElement autreBalise = docXml.CreateElement("NomClient");
-            autreBalise.InnerText =un_client.Nom;
+            autreBalise.InnerText = "Tucoulou";
             racine.AppendChild(autreBalise);
             XmlElement deuxiemeBalise = docXml.CreateElement("AdresseClient");
-            deuxiemeBalise.InnerText = un_client.Adresse;
+            deuxiemeBalise.InnerText = "ESILV, la défense";
             racine.AppendChild(deuxiemeBalise);
             XmlElement troisiemeBalise = docXml.CreateElement("Date");
-            troisiemeBalise.InnerText = "14";
+            troisiemeBalise.InnerText = date;
             racine.AppendChild(troisiemeBalise);
             XmlElement quatriemeBalise = docXml.CreateElement("Sejour");
-            quatriemeBalise.InnerText = "visite de la Defense";
+            quatriemeBalise.InnerText = nom_sejour;
             racine.AppendChild(quatriemeBalise);
             docXml.Save("M1.xml");
-            Theme new_theme = new Theme("pa2", "Les immeubles", 16, "pour l'exo PFR");
-            listeT.Add(new_theme);
-            Sejour new_sejour = new Sejour("11", "visite de la Defense", new_theme.Id_theme);
-            listeS.Add(new_sejour);
-            return new_sejour;
-        }
-        public static string E2(List<Client> listeC, Client un_client)
-        {
-            for (int i = 0; i < listeC.Count(); i++)
+            MySqlConnection connection = new MySqlConnection(connectionString);
+            connection.Open();
+            MySqlCommand command = connection.CreateCommand();
+            command.CommandText = "select id_s from sejour where description='"+nom_sejour+"'";
+            MySqlDataReader reader;
+            reader = command.ExecuteReader();
+            if(reader.Read())
             {
-                if (listeC[i].Nom != un_client.Nom || listeC[i].Num_c != un_client.Num_c || listeC[i].Adresse != un_client.Adresse)
-                {
-                    listeC.Add(un_client);
-                }
+                id_sejour = reader.GetInt32(0);
             }
-            return un_client.Num_c;
+            else
+            {
+                connection.Close();
+                connection.Open();
+                command.CommandText = "insert into theme values ('"+id_theme+"','"+nom_theme+"',"+arrondissment+",'"+description_theme+"')";
+                reader = command.ExecuteReader();
+                reader.Read();
+                connection.Close();
+                connection.Open();
+                command.CommandText = "select count(*) from sejour";
+                reader = command.ExecuteReader();
+                reader.Read();
+                id_sejour = (reader.GetInt16(0) + 1);
+                connection.Close();
+                connection.Open();
+                command.CommandText = "insert into sejour values ("+id_sejour+",'"+ nom_sejour + "','"+id_theme+"')";
+                reader = command.ExecuteReader();
+                reader.Read();
+            }
+            connection.Close();
+            return id_sejour;
         }
-        public static Ranger E3(string connectionString, List<Ranger> listeR)
+        public static List<string> returnInfoClient()
+        {
+            List<string> listeInfo_sejour = new List<string>();
+            string fileName = "M1.xml";
+            XPathDocument doc = new XPathDocument(fileName);
+            XPathNavigator nav = doc.CreateNavigator();
+            XPathExpression expr;
+            expr = nav.Compile("M1");
+            XPathNodeIterator nodes = nav.Select(expr);
+            nodes.Current.MoveToFirstChild();
+            nodes.Current.MoveToChild("NomClient", "");
+            string nom = nodes.Current.Value;
+            nodes.Current.MoveToParent();
+            nodes.Current.MoveToChild("AdresseClient","");
+            string adresse = nodes.Current.Value;
+            listeInfo_sejour.Add(nom);
+            listeInfo_sejour.Add(adresse);
+            return listeInfo_sejour;
+        }
+        public static List<string> returnInfoSejour()
+        {
+            List<string> listeInfo_sejour = new List<string>();
+            string fileName = "M1.xml";
+            XPathDocument doc = new XPathDocument(fileName);
+            XPathNavigator nav = doc.CreateNavigator();
+            XPathExpression expr;
+            expr = nav.Compile("M1");
+            XPathNodeIterator nodes = nav.Select(expr);
+            nodes.Current.MoveToFirstChild();
+            nodes.Current.MoveToChild("Date", "");
+            string date = nodes.Current.Value;
+            nodes.Current.MoveToParent();
+            nodes.Current.MoveToChild("Sejour", "");
+            string sejour = nodes.Current.Value;
+            listeInfo_sejour.Add(date);
+            listeInfo_sejour.Add(sejour);
+            return listeInfo_sejour;
+        }
+        public static string E3(string connectionString)
         {
             MySqlConnection connection = new MySqlConnection(connectionString);
             connection.Open();
@@ -254,36 +174,20 @@ namespace Fil_RougeBDD
             command.CommandText = "select r.immat from ranger r,parking p, voiture v where r.id_p=p.id_p and p.arrond=16 and v.immat=r.immat and v.disponible=true ";
             MySqlDataReader reader;
             reader = command.ExecuteReader();
-            Ranger voiture_dispo = null;
-            bool sort=false;
-            int compteur = 0;
-            while (reader.Read())
+            string voiture_dispo = "";
+            if(reader.Read())
             {
-                compteur++;
-                for(int i = 0; i < listeR.Count(); i++)
-                {
-                    if (listeR[i].Immat == reader.GetString(0) && !sort)
-                    {
-                        voiture_dispo=listeR[i];
-                        sort = true;
-                    }
-                }
-
+                voiture_dispo= reader.GetString(0);
             }
-            if (compteur == 0)
+            else
             {
                 connection.Close();
-                connection = new MySqlConnection(connectionString);
                 connection.Open();
-                command = connection.CreateCommand();
                 command.CommandText = "select r.immat from ranger r,voiture v where v.immat=r.immat and v.disponible=true ";
                 reader = command.ExecuteReader();
-                while (reader.Read())
+                if(reader.Read())
                 {
-                    for (int i = 0; i < listeR.Count(); i++)
-                    {
-                        if (listeR[i].Immat == reader.GetString(0)) voiture_dispo = listeR[i];
-                    }
+                    voiture_dispo = reader.GetString(0);
                 }
             }
             connection.Close();
@@ -293,7 +197,7 @@ namespace Fil_RougeBDD
         {
             StreamReader reader = new StreamReader("ReponseRBNP.json");
             JsonTextReader jreader = new JsonTextReader(reader);
-            List<string> liste=new List<string>();
+            List<string> liste = new List<string>();
             List<List<string>> maliste = new List<List<string>>();
             int compteur = 0;
             while (jreader.Read())
@@ -305,13 +209,13 @@ namespace Fil_RougeBDD
                         if (liste[i] == "availability" && liste[i + 1] == "yes") compteur++;
                         if (liste[i] == "borough" && int.Parse(liste[i + 1]) == 16) compteur++;
                         if (liste[i] == "overall_satisfaction" && Convert.ToDouble(liste[i + 1]) >= 4.5) compteur++;
-                        if (liste[i] == "bedrooms" &&Convert.ToDouble(liste[i + 1]) == 1) compteur++;
+                        if (liste[i] == "bedrooms" && Convert.ToDouble(liste[i + 1]) == 1) compteur++;
                     }
                     if (compteur == 4) maliste.Add(liste);
                     liste = new List<string>();
                     compteur = 0;
                 }
-                if (jreader.Value != null && (jreader.TokenType.ToString().ToLower() == "propertyname" || jreader.TokenType.ToString().ToLower() =="float" || jreader.TokenType.ToString().ToLower() == "string" || jreader.TokenType.ToString().ToLower() == "integer"))
+                if (jreader.Value != null && (jreader.TokenType.ToString().ToLower() == "propertyname" || jreader.TokenType.ToString().ToLower() == "float" || jreader.TokenType.ToString().ToLower() == "string" || jreader.TokenType.ToString().ToLower() == "integer"))
                 {
                     liste.Add(jreader.Value.ToString());
                 }
@@ -320,20 +224,29 @@ namespace Fil_RougeBDD
             reader.Close();
             return maliste;
         }
-        public static void Message2(string connectionString, Sejour sejour_selectionne,List<Reserver>listeReserver, List<Theme> listeT, Client adherent, Ranger voiture_selectionne, List<List<string>> appartements)
+        public static bool R1(string voiture)
         {
-            listeReserver.Add(new Reserver(adherent.Num_c,sejour_selectionne.Id_sejour,"14",false,-1));
-            Theme theme_sejour = null;
-            for (int i = 0; i < listeT.Count(); i++)
-            {
-                if (sejour_selectionne.Theme_sejour == listeT[i].Id_theme) theme_sejour = listeT[i];
-            }
+            if (voiture != "") return true;
+            else return false;
+        }
+        public static bool J3(List<List<string>> Appartements_valides)
+        {
+            if (Appartements_valides != null) return true;
+            else return false;
+        }
+        public static void Message2(string connectionString,int id_client, List<string> liste_sejour, List<string> liste_client, int id_sejour_choisi, string voiture_dispo, List<List<string>> appartements_valides)
+        {
+            //listeReserver.Add(new Reserver(adherent.Num_c, sejour_selectionne.Id_sejour, "14", false, -1));
             MySqlConnection connection = new MySqlConnection(connectionString);
             connection.Open();
             MySqlCommand command = connection.CreateCommand();
-            List<Client> listeC = new List<Client>();
-            command.CommandText = "select p.nom, r.num_place from parking p, ranger r where r.id_p=p.id_p and r.immat='" + voiture_selectionne.Immat + "'";
+            command.CommandText = "insert into reserver values ("+id_client+","+id_sejour_choisi+",'"+liste_sejour[0]+"',false,-1)";
             MySqlDataReader reader;
+            reader = command.ExecuteReader();Console.WriteLine("haa"); Console.ReadKey();
+
+
+
+            command.CommandText = "select ";
             reader = command.ExecuteReader();
             string nom_parking = "";
             string num_place = "";
@@ -343,7 +256,7 @@ namespace Fil_RougeBDD
                 num_place = reader.GetString(1);
                 break;
             }
-
+            /*
             XmlDocument docXml = new XmlDocument();
             docXml.CreateXmlDeclaration("1.0", "UTF -8", "no");
             XmlElement racine = docXml.CreateElement("M2");
@@ -354,16 +267,16 @@ namespace Fil_RougeBDD
             XmlElement deuxiemeBalise = docXml.CreateElement("Adherent");
             racine.AppendChild(deuxiemeBalise);
             XmlElement baliseAdherentNom = docXml.CreateElement("Nom");
-            baliseAdherentNom.InnerText = adherent.Nom;
+            baliseAdherentNom.InnerText = liste_client[0];
             deuxiemeBalise.AppendChild(baliseAdherentNom);
             XmlElement baliseAdherentnum = docXml.CreateElement("Numero");
-            baliseAdherentnum.InnerText = adherent.Num_c;
+            baliseAdherentnum.InnerText = id_client;
             deuxiemeBalise.AppendChild(baliseAdherentnum);
             XmlElement nomTheme = docXml.CreateElement("NomTheme");
-            nomTheme.InnerText = theme_sejour.Nom_theme;
+            nomTheme.InnerText = liste_sejour[1];
             racine.AppendChild(nomTheme);
             XmlElement troisiemeBalise = docXml.CreateElement("Date");
-            troisiemeBalise.InnerText = "14";
+            troisiemeBalise.InnerText = liste_sejour[0];
             racine.AppendChild(troisiemeBalise);
             XmlElement cinquiemeBalise = docXml.CreateElement("InfoValidation");
             cinquiemeBalise.InnerText = "Sejour validé";
@@ -406,8 +319,13 @@ namespace Fil_RougeBDD
             XmlElement prix3 = docXml.CreateElement("prix");
             Proposition3.AppendChild(prix3);
             prix3.InnerText = appartements[2][19];
-            docXml.Save("M2.xml");
+            docXml.Save("M2.xml");*/
         }
+        
+        
+
+
+       /*
         public static void Message3(Sejour sejour_selectionne,Client adherent, List<List<string>> appartements, List<Reserver> listeReserver, List<Voiture>listeV, Ranger voiture_dispo)
         {
             XmlDocument docXml = new XmlDocument();
@@ -467,37 +385,6 @@ namespace Fil_RougeBDD
             docXml.Save("M4.xml");
         }
 
-
-
-        public static void Exo1()
-        {
-            string fileName = "bdtheque.xml";
-            XPathDocument doc = new XPathDocument(fileName);
-            XPathNavigator nav = doc.CreateNavigator();
-            XPathExpression expr;
-            expr = nav.Compile("bdtheque/BD");
-
-            XPathNodeIterator nodes = nav.Select(expr);
-            while (nodes.MoveNext())
-            {
-                /* à compléter ...
-                en regardant les différentes propri étés et méthodes publiques
-                disponibles depuis l'objet nodes . Current (de type XPathNavigator )
-                */
-                string isbn = nodes.Current.GetAttribute("isbn", "");
-                nodes.Current.MoveToFirstChild();
-                string titre = nodes.Current.Value;
-                nodes.Current.MoveToNext();
-                string auteur = nodes.Current.Value;
-                bool nbPagesExiste = nodes.Current.MoveToNext();
-                string nbPages = "";
-                if (nbPagesExiste)
-                {
-                    nbPages = nodes.Current.Value;
-                }
-                Console.WriteLine(titre + "(" + nbPages + " pages), ecrit par " + auteur + ", numero ISBN : " + isbn);
-            }
-        }
-
+        */
     }
 }
