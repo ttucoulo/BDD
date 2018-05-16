@@ -19,12 +19,13 @@ namespace Fil_RougeBDD
             string connectionString = " SERVER = fboisson.ddns.net ; PORT = 3306; DATABASE = TUCO_THIB; UID = S6-TUCO-THIB;PASSWORD = 8441;";
             int mon_id_client = E2(connectionString);
             int id_sejour_choisi=Message1(connectionString);
-            List<string> liste_info_client = returnInfoClient();
-            List<string> liste_info_sejour = returnInfoSejour();
+            List<string> liste_info_client = P1_client();
+            List<string> liste_info_sejour = P1_sejour();
             string voiture_dispo = E3(connectionString);
             List<List<string>> appartements_valides = E5();
             if (R1(voiture_dispo))
             {
+                J1(liste_info_sejour);
                 List<List<string>> Appartements_valides = E5();
                 if (J3(appartements_valides))
                 {
@@ -128,7 +129,7 @@ namespace Fil_RougeBDD
             connection.Close();
             return id_sejour;
         }
-        public static List<string> returnInfoClient()
+        public static List<string> P1_client()
         {
             List<string> listeInfo_sejour = new List<string>();
             string fileName = "M1.xml";
@@ -147,10 +148,11 @@ namespace Fil_RougeBDD
             listeInfo_sejour.Add(adresse);
             return listeInfo_sejour;
         }
-        public static List<string> returnInfoSejour()
+        public static List<string> P1_sejour()
         {
             List<string> listeInfo_sejour = new List<string>();
             string fileName = "M1.xml";
+            string ville = "La Défense";
             XPathDocument doc = new XPathDocument(fileName);
             XPathNavigator nav = doc.CreateNavigator();
             XPathExpression expr;
@@ -164,6 +166,7 @@ namespace Fil_RougeBDD
             string sejour = nodes.Current.Value;
             listeInfo_sejour.Add(date);
             listeInfo_sejour.Add(sejour);
+            listeInfo_sejour.Add(ville);
             return listeInfo_sejour;
         }
         public static string E3(string connectionString)
@@ -387,6 +390,19 @@ namespace Fil_RougeBDD
             cinquiemeBalise.InnerText = "séjour impossible, veuillez choisir une autre date";
             racine.AppendChild(cinquiemeBalise);
             docXml.Save("M4.xml");
+        }
+        public static void J1(List<string> liste_info_sejour)
+        {
+            StreamWriter writer = new StreamWriter("J1.json");
+            JsonTextWriter jwriter = new JsonTextWriter(writer);
+            jwriter.WriteStartObject();
+            jwriter.WritePropertyName("Ville");
+            jwriter.WriteValue(liste_info_sejour[2]);
+            jwriter.WritePropertyName("Date");
+            jwriter.WriteValue(liste_info_sejour[0]);
+            jwriter.WriteEndObject();
+            jwriter.Close();
+            writer.Close();
         }
     }
 }
