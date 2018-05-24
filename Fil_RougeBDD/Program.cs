@@ -19,9 +19,11 @@ namespace Fil_RougeBDD
             string connectionString = " SERVER = fboisson.ddns.net ; PORT = 3306; DATABASE = TUCO_THIB; UID = S6-TUCO-THIB;PASSWORD = 8441;";
             int mon_id_client = E2(connectionString);
             int id_sejour_choisi=Message1(connectionString);
+            Console.WriteLine("Appuyez sur une touche pour continuer   "); Console.ReadKey();
             List<string> liste_info_client = P1_client();
             List<string> liste_info_sejour = P1_sejour();
-            string voiture_dispo = E3(connectionString);
+            string voiture_dispo = E3(connectionString,mon_id_client,liste_info_sejour);
+            Console.WriteLine("Appuyez sur une touche pour continuer   "); Console.ReadKey();
             List<List<string>> appartements_valides = E5();
             if (R1(voiture_dispo))
             {
@@ -30,8 +32,11 @@ namespace Fil_RougeBDD
                 if (J3(appartements_valides))
                 {
                     Message2(connectionString,mon_id_client,liste_info_sejour,liste_info_client,id_sejour_choisi,voiture_dispo,appartements_valides);
+                    Console.WriteLine("Appuyez sur une touche pour continuer   "); Console.ReadKey();
                     Message3(connectionString,mon_id_client,id_sejour_choisi,appartements_valides,liste_info_sejour, voiture_dispo);
-                    Message4(mon_id_client,liste_info_client,liste_info_sejour);
+                    Console.WriteLine("Appuyez sur une touche pour continuer   "); Console.ReadKey();
+                    enregistrementVehicule(connectionString, mon_id_client, voiture_dispo, liste_info_sejour, "P1", "A1");
+                    attributionNote(connectionString, 4, mon_id_client, id_sejour_choisi, liste_info_sejour);
                 }
                 else Console.WriteLine("Pas d'appartement disponible conforme à votre recherche.");
             }
@@ -169,29 +174,55 @@ namespace Fil_RougeBDD
             listeInfo_sejour.Add(ville);
             return listeInfo_sejour;
         }
-        public static string E3(string connectionString)
+        public static string E3(string connectionString, int client_id,List<string> liste_info_sejour)
         {
             MySqlConnection connection = new MySqlConnection(connectionString);
             connection.Open();
             MySqlCommand command = connection.CreateCommand();
-            command.CommandText = "select r.immat from ranger r,parking p, voiture v where r.id_p=p.id_p and p.arrond=16 and v.immat=r.immat and v.disponible=true ";
+            command.CommandText = "select r.immat, r.id_p from ranger r,parking p, voiture v where r.id_p=p.id_p and p.arrond=16 and v.immat=r.immat and v.disponible=true ";
             MySqlDataReader reader;
             reader = command.ExecuteReader();
             string voiture_dispo = "";
+            string id_p = "";
             if(reader.Read())
             {
                 voiture_dispo= reader.GetString(0);
+                id_p = reader.GetString(1);
+                connection.Close();
+                connection.Open();
+                command.CommandText = "delete from ranger where immat='" + voiture_dispo + "' and id_p='" + id_p + "' and date_r='18-01-" + liste_info_sejour[0] + "'";
+                reader = command.ExecuteReader();
             }
             else
             {
                 connection.Close();
                 connection.Open();
-                command.CommandText = "select immat from voiture where disponible=true ";
+                command.CommandText = "select r.immat,r.id_p from voiture v,ranger r where v.disponible=true and r.immat=v.immat ";
                 reader = command.ExecuteReader();
                 if(reader.Read())
                 {
                     voiture_dispo = reader.GetString(0);
+                    id_p = reader.GetString(1);
+                    connection.Close();
+                    connection.Open();
+                    command.CommandText = "delete from ranger where immat='" + voiture_dispo + "' and id_p='" + id_p + "' and date_r='18-01-" + liste_info_sejour[0] + "'";
+                    reader = command.ExecuteReader();
                 }
+            }
+            connection.Close();
+            connection.Open();
+            command.CommandText = "select num_c from utiliser where num_c="+client_id+" and immat='"+voiture_dispo+ "' and date_d='18-01-" + liste_info_sejour[0] + "'";
+            reader = command.ExecuteReader();
+            if (reader.Read())
+            {
+                
+            }
+            else
+            {
+                connection.Close();
+                connection.Open();
+                command.CommandText = "insert into utiliser values("+client_id+",'"+voiture_dispo+"','18-01-"+liste_info_sejour[0]+"','18-01-25')";
+                reader = command.ExecuteReader();
             }
             connection.Close();
             return voiture_dispo;
@@ -403,6 +434,26 @@ namespace Fil_RougeBDD
             jwriter.WriteEndObject();
             jwriter.Close();
             writer.Close();
+        }
+        public static void enregistrementVehicule(string connectionString, int client, string voiture_a_rendre, List<string> liste_info_sejour, string id_p_voiture_deposee, string place_deposee)
+        {
+            MySqlConnection connection = new MySqlConnection(connectionString);
+            connection.Open();
+            MySqlDataReader reader;
+            MySqlCommand command = connection.CreateCommand();
+            command.CommandText = "insert into ranger values('"+id_p_voiture_deposee+"','"+voiture_a_rendre+"','18-01-25','"+place_deposee+"')";
+            reader = command.ExecuteReader();
+            connection.Close();
+        }
+        public static void attributionNote(string connectionString, int note_attribuee, int id_client, int id_sejour_choisi,List<string> liste_info_sejour)
+        {
+            MySqlConnection connection = new MySqlConnection(connectionString);
+            connection.Open();
+            MySqlDataReader reader;
+            MySqlCommand command = connection.CreateCommand();
+            command.CommandText = "update reserver set note="+note_attribuee+" where num_c="+id_client+" and id_s="+id_sejour_choisi+" and date_r='18-01-"+liste_info_sejour[0]+"'";
+            reader = command.ExecuteReader();
+            connection.Close();
         }
     }
 }
