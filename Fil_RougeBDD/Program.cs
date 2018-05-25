@@ -35,8 +35,10 @@ namespace Fil_RougeBDD
                     Console.WriteLine("Appuyez sur une touche pour continuer   "); Console.ReadKey();
                     Message3(connectionString,mon_id_client,id_sejour_choisi,appartements_valides,liste_info_sejour, voiture_dispo);
                     Console.WriteLine("Appuyez sur une touche pour continuer   "); Console.ReadKey();
-                    enregistrementVehicule(connectionString, mon_id_client, voiture_dispo, liste_info_sejour, "P1", "A1");
+                    string voiture_deposee=enregistrementVehicule(connectionString, mon_id_client, voiture_dispo, liste_info_sejour, "P1", "A1");
                     attributionNote(connectionString, 4, mon_id_client, id_sejour_choisi, liste_info_sejour);
+                    controleVehicule(connectionString, voiture_deposee);
+                    entretien_et_mise_a_disponible(connectionString,voiture_deposee);
                 }
                 else Console.WriteLine("Pas d'appartement disponible conforme à votre recherche.");
             }
@@ -435,15 +437,27 @@ namespace Fil_RougeBDD
             jwriter.Close();
             writer.Close();
         }
-        public static void enregistrementVehicule(string connectionString, int client, string voiture_a_rendre, List<string> liste_info_sejour, string id_p_voiture_deposee, string place_deposee)
+        public static string enregistrementVehicule(string connectionString, int client, string voiture_a_rendre, List<string> liste_info_sejour, string id_p_voiture_deposee, string place_deposee)
         {
             MySqlConnection connection = new MySqlConnection(connectionString);
             connection.Open();
             MySqlDataReader reader;
             MySqlCommand command = connection.CreateCommand();
-            command.CommandText = "insert into ranger values('"+id_p_voiture_deposee+"','"+voiture_a_rendre+"','18-01-25','"+place_deposee+"')";
+            command.CommandText = "select immat from ranger where immat='"+voiture_a_rendre+"' and id_p='"+id_p_voiture_deposee+"' and date_r='18-01-25'";
             reader = command.ExecuteReader();
+            if (reader.Read())
+            {
+
+            }
+            else
+            {
+                connection.Close();
+                connection.Open();
+                command.CommandText = "insert into ranger values('" + id_p_voiture_deposee + "','" + voiture_a_rendre + "','18-01-25','" + place_deposee + "')";
+                reader = command.ExecuteReader();
+            }
             connection.Close();
+            return voiture_a_rendre;
         }
         public static void attributionNote(string connectionString, int note_attribuee, int id_client, int id_sejour_choisi,List<string> liste_info_sejour)
         {
@@ -452,6 +466,79 @@ namespace Fil_RougeBDD
             MySqlDataReader reader;
             MySqlCommand command = connection.CreateCommand();
             command.CommandText = "update reserver set note="+note_attribuee+" where num_c="+id_client+" and id_s="+id_sejour_choisi+" and date_r='18-01-"+liste_info_sejour[0]+"'";
+            reader = command.ExecuteReader();
+            connection.Close();
+        }
+        public static void controleVehicule(string connectionString, string voiture_deposee)
+        {
+            MySqlConnection connection = new MySqlConnection(connectionString);
+            connection.Open();
+            MySqlDataReader reader;
+            MySqlCommand command = connection.CreateCommand();
+            command.CommandText = "select nom_v from voiture where immat='"+voiture_deposee+"'";
+            reader = command.ExecuteReader();
+            string nom_v_voiture_deposee = "";
+            if (reader.Read())
+            {
+                nom_v_voiture_deposee = reader.GetString(0);
+            }
+            connection.Close();
+            connection.Open();
+            command.CommandText = "select immat from controler where immat='"+voiture_deposee+"' and nom_v='"+nom_v_voiture_deposee+"' and date_ctrl='18-01-28'";
+            reader = command.ExecuteReader();
+            if (reader.Read())
+            {
+
+            }
+            else
+            {
+                connection.Close();
+                connection.Open();
+                command.CommandText = "insert into controler values('" + voiture_deposee + "','" + nom_v_voiture_deposee + "','18-01-28')";
+                reader = command.ExecuteReader();
+            }
+            connection.Close();
+        }
+        public static void entretien_et_mise_a_disponible(string connectionString, string voiture_deposee)
+        {
+            MySqlConnection connection = new MySqlConnection(connectionString);
+            connection.Open();
+            MySqlDataReader reader;
+            MySqlCommand command = connection.CreateCommand();
+            command.CommandText = "select immat from entretenir where immat='"+voiture_deposee+"' and id_m='nett'";
+            reader = command.ExecuteReader();
+            if (reader.Read())
+            {
+
+            }
+            else
+            {
+                connection.Close();
+                connection.Open();
+                command.CommandText = "insert into entretenir values('"+voiture_deposee+"','nett','18-01-28')";
+                reader = command.ExecuteReader();
+            }
+            connection.Close();
+            connection.Open();
+            command.CommandText = "update voiture set disponible=true where immat='"+voiture_deposee+"'";
+            reader = command.ExecuteReader();
+            connection.Close();
+        }
+        public static void requetes_statistiques(string connectionString, string voiture_deposee)
+        {
+            Console.WriteLine("Affichage des interventions sur la voiture du client précédent");
+            MySqlConnection connection = new MySqlConnection(connectionString);
+            connection.Open();
+            MySqlDataReader reader;
+            MySqlCommand command = connection.CreateCommand();
+            command.CommandText = "select id_m from entretenir where immat='"+voiture_deposee+"'";
+            reader = command.ExecuteReader();
+            connection.Close();
+            Console.ReadKey();
+
+            Console.WriteLine("");
+            connection.Open();
+            command.CommandText = "";
             reader = command.ExecuteReader();
             connection.Close();
         }
