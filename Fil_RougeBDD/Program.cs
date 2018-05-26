@@ -39,6 +39,7 @@ namespace Fil_RougeBDD
                     attributionNote(connectionString, 4, mon_id_client, id_sejour_choisi, liste_info_sejour);
                     controleVehicule(connectionString, voiture_deposee);
                     entretien_et_mise_a_disponible(connectionString,voiture_deposee);
+                    requetes_statistiques(connectionString,voiture_deposee,mon_id_client);
                 }
                 else Console.WriteLine("Pas d'appartement disponible conforme à votre recherche.");
             }
@@ -524,7 +525,7 @@ namespace Fil_RougeBDD
             reader = command.ExecuteReader();
             connection.Close();
         }
-        public static void requetes_statistiques(string connectionString, string voiture_deposee)
+        public static void requetes_statistiques(string connectionString, string voiture_deposee, int num_client)
         {
             Console.WriteLine("Affichage des interventions sur la voiture du client précédent");
             MySqlConnection connection = new MySqlConnection(connectionString);
@@ -533,14 +534,40 @@ namespace Fil_RougeBDD
             MySqlCommand command = connection.CreateCommand();
             command.CommandText = "select id_m from entretenir where immat='"+voiture_deposee+"'";
             reader = command.ExecuteReader();
+            string maintenances = "";
+            while (reader.Read())
+            {
+                maintenances = reader.GetString(0);
+                Console.WriteLine(maintenances);
+            }
             connection.Close();
             Console.ReadKey();
 
-            Console.WriteLine("");
+            Console.WriteLine("Affichage des voitures utilisées par le client précédent");
             connection.Open();
-            command.CommandText = "";
+            command.CommandText = "select immat from utiliser where num_c ="+ num_client;
             reader = command.ExecuteReader();
+            string immat = "";
+            while (reader.Read())
+            {
+                immat = reader.GetString(0);
+                Console.WriteLine(immat);
+            }
             connection.Close();
+            Console.ReadKey();
+
+            Console.WriteLine("Affichage de la rentabilité par mois du vehicule du dernier client, dans notre exemple, le nombre de locations du vehicule du dernier client dans le mois.");
+            connection.Open();
+            command.CommandText = "select count(*) from utiliser where immat='"+voiture_deposee+"' and date_d like '2018-%'";
+            reader = command.ExecuteReader();
+            int num_locations = 0;
+            if (reader.Read())
+            {
+                num_locations = reader.GetInt16(0);
+            }
+            Console.WriteLine((float)(num_locations*100/12)+" %");
+            connection.Close();
+            Console.ReadKey();
         }
     }
 }
