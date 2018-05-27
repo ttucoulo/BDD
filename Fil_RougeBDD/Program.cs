@@ -21,7 +21,8 @@ namespace Fil_RougeBDD
             int id_sejour_choisi=Message1(connectionString);
             List<string> liste_info_client = P1_client();
             List<string> liste_info_sejour = P1_sejour();
-            Console.WriteLine("Appuyez sur la barre d'espace pour selectionner une voiture disponible"); Console.ReadKey();
+            Console.WriteLine("Début de la démo\n\nL'utilisateur souhaite reserver un sejour et a donc entré les critères de selection d'un sejour.\n\n");
+            Console.WriteLine("Appuyez sur la barre d'espace pour la selection d'une voiture disponible"); Console.ReadKey();
             string voiture_dispo = E3(connectionString,mon_id_client,liste_info_sejour);
             Console.WriteLine("Appuyez sur la barre d'espace pour chercher un logement conforme à votre recherche."); Console.ReadKey();
             List<List<string>> appartements_valides = E5();
@@ -37,7 +38,7 @@ namespace Fil_RougeBDD
                     Console.WriteLine("Appuyez sur la barre d'espace pour generer le message M3 (validation du sejour)."); Console.ReadKey();
                     Message3(connectionString,mon_id_client,id_sejour_choisi,appartements_valides,liste_info_sejour, voiture_dispo);
                     Console.Clear();
-                    Console.WriteLine("Check-Out\n\n");
+                    Console.WriteLine("Check-Out\n\nL'utilisateur a garé la voiture sur une place\n\n.");
                     Console.WriteLine("Appuyez sur la barre d'espace pour enregistrer le placement de la voiture à rendre."); Console.ReadKey();
                     string voiture_deposee=enregistrementVehicule(connectionString, mon_id_client, voiture_dispo, liste_info_sejour, "P1", "A1");
                     Console.WriteLine("Appuyez sur la barre d'espace pour l'attribution d'une note au sejour."); Console.ReadKey();
@@ -45,7 +46,8 @@ namespace Fil_RougeBDD
                     Console.WriteLine("Appuyez sur la barre d'espace pour passer au contrôle du vehicule rendu."); Console.ReadKey();
                     controleVehicule(connectionString, voiture_deposee);
                     entretien_et_mise_a_disponible(connectionString,voiture_deposee);
-                    requetes_statistiques(connectionString,voiture_deposee,mon_id_client);
+                    requetes_statistiques(connectionString,voiture_deposee,mon_id_client); Console.Clear();
+                    Console.WriteLine("Fin de la démo.");
                 }
                 else Console.WriteLine("Pas d'appartement disponible conforme à votre recherche.");
             }
