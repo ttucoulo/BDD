@@ -19,24 +19,30 @@ namespace Fil_RougeBDD
             string connectionString = " SERVER = fboisson.ddns.net ; PORT = 3306; DATABASE = TUCO_THIB; UID = S6-TUCO-THIB;PASSWORD = 8441;";
             int mon_id_client = E2(connectionString);
             int id_sejour_choisi=Message1(connectionString);
-            Console.WriteLine("Appuyez sur une touche pour continuer   "); Console.ReadKey();
             List<string> liste_info_client = P1_client();
             List<string> liste_info_sejour = P1_sejour();
+            Console.WriteLine("Appuyez sur la barre d'espace pour selectionner une voiture disponible"); Console.ReadKey();
             string voiture_dispo = E3(connectionString,mon_id_client,liste_info_sejour);
-            Console.WriteLine("Appuyez sur une touche pour continuer   "); Console.ReadKey();
+            Console.WriteLine("Appuyez sur la barre d'espace pour chercher un logement conforme à votre recherche."); Console.ReadKey();
             List<List<string>> appartements_valides = E5();
             if (R1(voiture_dispo))
             {
                 J1(liste_info_sejour);
                 List<List<string>> Appartements_valides = E5();
+
                 if (J3(appartements_valides))
                 {
+                    Console.WriteLine("Appuyez sur la barre d'espace pour generer le XML M2 (message de confirmation)"); Console.ReadKey();
                     Message2(connectionString,mon_id_client,liste_info_sejour,liste_info_client,id_sejour_choisi,voiture_dispo,appartements_valides);
-                    Console.WriteLine("Appuyez sur une touche pour continuer   "); Console.ReadKey();
+                    Console.WriteLine("Appuyez sur la barre d'espace pour generer le message M3 (validation du sejour)."); Console.ReadKey();
                     Message3(connectionString,mon_id_client,id_sejour_choisi,appartements_valides,liste_info_sejour, voiture_dispo);
-                    Console.WriteLine("Appuyez sur une touche pour continuer   "); Console.ReadKey();
+                    Console.Clear();
+                    Console.WriteLine("Check-Out\n\n");
+                    Console.WriteLine("Appuyez sur la barre d'espace pour enregistrer le placement de la voiture à rendre."); Console.ReadKey();
                     string voiture_deposee=enregistrementVehicule(connectionString, mon_id_client, voiture_dispo, liste_info_sejour, "P1", "A1");
+                    Console.WriteLine("Appuyez sur la barre d'espace pour l'attribution d'une note au sejour."); Console.ReadKey();
                     attributionNote(connectionString, 4, mon_id_client, id_sejour_choisi, liste_info_sejour);
+                    Console.WriteLine("Appuyez sur la barre d'espace pour passer au contrôle du vehicule rendu."); Console.ReadKey();
                     controleVehicule(connectionString, voiture_deposee);
                     entretien_et_mise_a_disponible(connectionString,voiture_deposee);
                     requetes_statistiques(connectionString,voiture_deposee,mon_id_client);
@@ -44,7 +50,6 @@ namespace Fil_RougeBDD
                 else Console.WriteLine("Pas d'appartement disponible conforme à votre recherche.");
             }
             else Console.WriteLine("Pas de voiture disponible...");
-            Console.ReadKey();
         }
 
         public static int E2(string connectionString)
@@ -389,15 +394,15 @@ namespace Fil_RougeBDD
             command.CommandText = "update reserver set confirme=true where id_s="+id_sejour_choisi+" and num_c="+ mon_id_client+" and date_r='18-01-"+ liste_info_sejour[0] +"'";
             reader = command.ExecuteReader();
 
-            //connection.Close();
-            //connection.Open();
-            //command.CommandText = "update voiture set disponible=false where immat='"+voiture_dispo+"'";
-            //reader = command.ExecuteReader();
+            connection.Close();
+            connection.Open();
+            command.CommandText = "update voiture set disponible=false where immat='"+voiture_dispo+"'";
+            reader = command.ExecuteReader();
 
-            //connection.Close();
-            //connection.Open();
-            //command.CommandText = "update voiture set motif='reservée' where immat='" + voiture_dispo + "'";
-            //reader = command.ExecuteReader();
+            connection.Close();
+            connection.Open();
+            command.CommandText = "update voiture set motif='reservée' where immat='" + voiture_dispo + "'";
+            reader = command.ExecuteReader();
             
         }
         public static void Message4(int mon_id_client, List<string> liste_client, List<string> liste_info_sejour)
@@ -527,7 +532,7 @@ namespace Fil_RougeBDD
         }
         public static void requetes_statistiques(string connectionString, string voiture_deposee, int num_client)
         {
-            Console.WriteLine("Affichage des interventions sur la voiture du client précédent");
+            Console.WriteLine("Affichage des interventions sur la voiture du client précédent\n");
             MySqlConnection connection = new MySqlConnection(connectionString);
             connection.Open();
             MySqlDataReader reader;
@@ -543,7 +548,7 @@ namespace Fil_RougeBDD
             connection.Close();
             Console.ReadKey();
 
-            Console.WriteLine("Affichage des voitures utilisées par le client précédent");
+            Console.WriteLine("Affichage des voitures utilisées par le client précédent\n");
             connection.Open();
             command.CommandText = "select immat from utiliser where num_c ="+ num_client;
             reader = command.ExecuteReader();
@@ -556,7 +561,7 @@ namespace Fil_RougeBDD
             connection.Close();
             Console.ReadKey();
 
-            Console.WriteLine("Affichage de la rentabilité par mois du vehicule du dernier client, dans notre exemple, le nombre de locations du vehicule du dernier client dans le mois.");
+            Console.WriteLine("Affichage de la rentabilité par mois du vehicule du dernier client, dans notre exemple, le nombre de locations du vehicule du dernier client dans le mois.\n");
             connection.Open();
             command.CommandText = "select count(*) from utiliser where immat='"+voiture_deposee+"' and date_d like '2018-%'";
             reader = command.ExecuteReader();
